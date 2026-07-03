@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SOC Task Tracker</title>
+<style>
+  :root{
+    --bg:#FAF7F2;
+    --text:#3F3B36;
+    --text-soft:#7A736A;
+    --card:#FFFFFF;
+    --border:#E8E1D6;
+    --shadow:0 1px 3px rgba(63,59,54,0.08);
+
+    --finance:#A9C3A5;
+    --ticketing:#9FB8CC;
+    --systems:#BBA8CC;
+    --marketing:#E8BB98;
+    --ai:#8FC4BC;
+    --acquisition:#D6A3A3;
+    --director:#DDC48C;
+
+    --not-started:#D3CDC4;
+    --in-progress:#9FB8CC;
+    --blocked:#E0A08F;
+    --done:#A9C3A5;
+
+    --parchment:#F3ECE0;
+    --parchment-border:#E3D6BE;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family: Calibri, "Segoe UI", "Lato", "Helvetica Neue", Arial, sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    font-size:15px;
+    line-height:1.45;
+  }
+  .wrap{max-width:1300px;margin:0 auto;padding:20px 22px 60px;}
+
+  /* ---------- HEADER ---------- */
+  header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:18px;flex-wrap:wrap;gap:10px;}
+  h1{font-size:22px;font-weight:700;margin:0 0 4px;}
+  .sub{color:var(--text-soft);font-size:13px;}
+
+  /* ---------- KPI SUMMARY STRIP ---------- */
+  .kpi-strip{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:20px;}
+  .kpi-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;box-shadow:var(--shadow);}
+  .kpi-card .dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:6px;}
+  .kpi-card .name{font-size:12.5px;font-weight:700;display:flex;align-items:center;margin-bottom:6px;}
+  .kpi-card .counts{font-size:11.5px;color:var(--text-soft);margin-bottom:6px;}
+  .kpi-bar{height:6px;border-radius:4px;background:var(--border);overflow:hidden;}
+  .kpi-bar-fill{height:100%;border-radius:4px;}
+
+  /* ---------- COMPETENCY PANEL ---------- */
+  .comp-panel{background:var(--parchment);border:1px solid var(--parchment-border);border-radius:12px;padding:14px 16px;margin-bottom:22px;}
+  .comp-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px;}
+  .comp-head h2{font-size:15px;margin:0;font-weight:700;}
+  .comp-head .meta{font-size:12px;color:var(--text-soft);}
+  .comp-table{width:100%;border-collapse:collapse;font-size:13px;}
+  .comp-table th{text-align:left;font-size:11.5px;color:var(--text-soft);font-weight:700;padding:4px 8px;border-bottom:1px solid var(--parchment-border);}
+  .comp-table td{padding:6px 8px;border-bottom:1px solid #EAE0CC;vertical-align:middle;}
+  .comp-table tr:last-child td{border-bottom:none;}
+  .freq-tag{font-size:11px;color:var(--text-soft);}
+  .week-pill{display:inline-flex;align-items:center;justify-content:center;width:30px;height:22px;border-radius:6px;font-size:12px;cursor:pointer;border:1px solid var(--parchment-border);background:#fff;margin-right:3px;}
+  .week-pill.competent{background:var(--done);border-color:var(--done);}
+  .week-pill.support{background:#F0D9A0;border-color:#F0D9A0;}
+  .week-pill.not-yet{background:var(--blocked);border-color:var(--blocked);}
+  .week-pill.pending{background:#fff;color:var(--text-soft);}
+  .signoff{font-size:11.5px;padding:3px 8px;border-radius:20px;background:#fff;border:1px solid var(--parchment-border);color:var(--text-soft);}
+  .signoff.done{background:var(--done);color:#2E4A2C;border-color:var(--done);}
+
+  /* ---------- CONTROLS ---------- */
+  .controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px;}
+  .view-toggle{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+  .view-toggle button{border:none;background:#fff;padding:7px 14px;font-size:13px;cursor:pointer;color:var(--text-soft);font-family:inherit;}
+  .view-toggle button.active{background:var(--systems);color:#fff;font-weight:700;}
+  select, input[type=text]{
+    font-family:inherit;font-size:13px;padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:#fff;color:var(--text);
+  }
+  .btn{font-family:inherit;font-size:13px;padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:#fff;cursor:pointer;color:var(--text);font-weight:600;}
+  .btn.primary{background:var(--systems);color:#fff;border-color:var(--systems);}
+  .btn.primary:hover{opacity:.9;}
+  .spacer{flex:1;}
+
+  /* ---------- ADD PANEL ---------- */
+  .add-panel{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px;box-shadow:var(--shadow);display:none;}
+  .add-panel.open{display:block;}
+  .add-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+  .add-row input[type=text]{flex:1;min-width:200px;}
+  textarea{
+    font-family:inherit;font-size:13px;width:100%;min-height:80px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);resize:vertical;
+  }
+  .tabs{display:flex;gap:4px;margin-bottom:10px;}
+  .tabs button{border:none;background:none;font-family:inherit;font-size:12.5px;padding:5px 10px;border-radius:6px;cursor:pointer;color:var(--text-soft);}
+  .tabs button.active{background:var(--bg);color:var(--text);font-weight:700;}
+
+  /* ---------- KANBAN ---------- */
+  .board{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  .col{background:#F2EEE6;border-radius:12px;padding:10px;min-height:200px;}
+  .col-head{font-size:12.5px;font-weight:700;color:var(--text-soft);margin-bottom:8px;display:flex;justify-content:space-between;padding:0 4px;}
+  .col-head .count{background:#fff;border-radius:10px;padding:1px 8px;font-size:11px;}
+  .card{
+    background:var(--card);border-radius:9px;padding:10px 11px;margin-bottom:8px;box-shadow:var(--shadow);cursor:grab;border-left:4px solid var(--not-started);
+  }
+  .card:active{cursor:grabbing;}
+  .card .title{font-size:13.5px;font-weight:600;margin-bottom:6px;}
+  .card .tags{display:flex;gap:5px;flex-wrap:wrap;align-items:center;}
+  .tag{font-size:10.5px;padding:2px 7px;border-radius:20px;color:#3F3B36;font-weight:600;}
+  .tag.freq{background:#F2EEE6;color:var(--text-soft);font-weight:500;}
+  .new-badge{font-size:10px;background:#3F3B36;color:#fff;padding:2px 6px;border-radius:20px;font-weight:700;}
+  .card .notes{font-size:11.5px;color:var(--text-soft);margin-top:5px;}
+  .drag-over{outline:2px dashed var(--text-soft);}
+
+  /* ---------- TABLE VIEW ---------- */
+  table.main{width:100%;border-collapse:collapse;background:var(--card);border-radius:10px;overflow:hidden;box-shadow:var(--shadow);}
+  table.main th{text-align:left;font-size:11.5px;color:var(--text-soft);padding:9px 10px;border-bottom:1px solid var(--border);background:#F5F1EA;}
+  table.main td{padding:9px 10px;border-bottom:1px solid var(--border);font-size:13px;}
+  table.main tr:last-child td{border-bottom:none;}
+  .status-pill{font-size:11px;padding:3px 9px;border-radius:20px;font-weight:600;}
+  th.sortable{cursor:pointer;user-select:none;}
+
+  /* ---------- MODAL ---------- */
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(63,59,54,0.35);align-items:center;justify-content:center;z-index:50;}
+  .modal-bg.open{display:flex;}
+  .modal{background:#fff;border-radius:12px;padding:20px;width:420px;max-width:90vw;max-height:85vh;overflow:auto;}
+  .modal h3{margin-top:0;font-size:16px;}
+  .field{margin-bottom:10px;}
+  .field label{display:block;font-size:11.5px;color:var(--text-soft);font-weight:700;margin-bottom:3px;}
+  .field select,.field input,.field textarea{width:100%;}
+  .modal-actions{display:flex;justify-content:space-between;margin-top:14px;}
+
+  .empty{color:var(--text-soft);font-size:13px;padding:20px;text-align:center;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1>Services Operations Coordinator — Task Tracker</h1>
+      <div class="sub">Candice Jacobs · ITCorp · rolled up against your 7 KPI pillars</div>
+    </div>
+    <div class="sub" id="lastSaved"></div>
+  </header>
+
+  <div class="kpi-strip" id="kpiStrip"></div>
+
+  <div class="comp-panel">
+    <div class="comp-head">
+      <h2>Bookkeeping Competency Assessment</h2>
+      <div class="meta">Assessor: Tarryn Butcher · Reviewed by Carol Bush · Week <span id="compWeekLabel">2</span> of 4 · click a week cell to set rating</div>
+    </div>
+    <table class="comp-table" id="compTable"></table>
+  </div>
+
+  <div class="controls">
+    <div class="view-toggle">
+      <button id="viewKanbanBtn" class="active">Board</button>
+      <button id="viewTableBtn">Table</button>
+    </div>
+    <select id="filterPillar"><option value="">All pillars</option></select>
+    <select id="filterTag"><option value="">All finance tags</option></select>
+    <select id="filterFreq"><option value="">All frequencies</option></select>
+    <div class="spacer"></div>
+    <button class="btn primary" id="toggleAdd">+ Add task</button>
+  </div>
+
+  <div class="add-panel" id="addPanel">
+    <div class="tabs">
+      <button class="active" data-tab="quick">Quick add</button>
+      <button data-tab="bulk">Bulk paste</button>
+    </div>
+    <div id="tabQuick">
+      <div class="add-row">
+        <input type="text" id="qTitle" placeholder="Task title...">
+      </div>
+      <div class="add-row">
+        <select id="qPillar"></select>
+        <select id="qTag"></select>
+        <select id="qFreq"></select>
+        <select id="qStatus">
+          <option value="not-started">Not Started</option>
+          <option value="in-progress">In Progress</option>
+          <option value="blocked">Blocked</option>
+          <option value="done">Done</option>
+        </select>
+      </div>
+      <div class="add-row">
+        <input type="text" id="qNotes" placeholder="Notes / blocker (optional)">
+      </div>
+      <button class="btn primary" id="addQuickBtn">Add task</button>
+    </div>
+    <div id="tabBulk" style="display:none;">
+      <p class="sub" style="margin-top:0;">Paste one task per line. They'll be added as Not Started — tag them after.</p>
+      <textarea id="bulkText" placeholder="Follow up 3CX logins with Carol&#10;Draft video tutorial script #1&#10;Check A/R over R100 unmatched"></textarea>
+      <div class="add-row" style="margin-top:8px;">
+        <select id="bPillar"></select>
+      </div>
+      <button class="btn primary" id="addBulkBtn">Add all lines</button>
+    </div>
+  </div>
+
+  <div id="boardView"></div>
+  <div id="tableView" style="display:none;"></div>
+
+</div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h3>Edit task</h3>
+    <div class="field"><label>Title</label><input type="text" id="mTitle"></div>
+    <div class="field"><label>KPI Pillar</label><select id="mPillar"></select></div>
+    <div class="field"><label>Finance task-type tag</label><select id="mTag"></select></div>
+    <div class="field"><label>Frequency</label><select id="mFreq"></select></div>
+    <div class="field"><label>Status</label>
+      <select id="mStatus">
+        <option value="not-started">Not Started</option>
+        <option value="in-progress">In Progress</option>
+        <option value="blocked">Blocked</option>
+        <option value="done">Done</option>
+      </select>
+    </div>
+    <div class="field"><label>Notes / blocker</label><textarea id="mNotes"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn" id="deleteTaskBtn" style="color:#B5544A;">Delete</button>
+      <div>
+        <button class="btn" id="closeModalBtn">Cancel</button>
+        <button class="btn primary" id="saveModalBtn">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const PILLARS = [
+  {key:'finance', name:'Finance & Bookkeeping', color:'var(--finance)'},
+  {key:'ticketing', name:'Service Delivery & Ticketing', color:'var(--ticketing)'},
+  {key:'systems', name:'Internal Systems & Improvement', color:'var(--systems)'},
+  {key:'marketing', name:'Marketing & Client Comms', color:'var(--marketing)'},
+  {key:'ai', name:'AI & Technology Adoption', color:'var(--ai)'},
+  {key:'acquisition', name:'Business Acquisition Support', color:'var(--acquisition)'},
+  {key:'director', name:'Director & Operations Support', color:'var(--director)'},
+];
+const FINANCE_TAGS = [
+  {key:'', name:'— none —'},
+  {key:'bank-recon', name:'Bank Reconciliations'},
+  {key:'invoice-packs', name:'Invoice Packs'},
+  {key:'invoice-processing', name:'Invoice Processing'},
+  {key:'debtors-followup', name:'Debtors Follow-Up / Age Analysis'},
+  {key:'statements', name:'Statements'},
+  {key:'netcash-do', name:'Debit Orders via Netcash'},
+  {key:'supplier-recons', name:'Supplier Recons'},
+  {key:'mgmt-accounts', name:'Management Accounts & Reporting'},
+  {key:'adhoc', name:'Ad hoc / Project'},
+];
+const FREQUENCIES = ['Daily','Weekly','Monthly','Ongoing','As needed','Once-off'];
+const STATUSES = [
+  {key:'not-started', name:'Not Started', color:'var(--not-started)'},
+  {key:'in-progress', name:'In Progress', color:'var(--in-progress)'},
+  {key:'blocked', name:'Blocked', color:'var(--blocked)'},
+  {key:'done', name:'Done', color:'var(--done)'},
+];
+const COMPETENCY_SEGMENTS = [
+  {name:'Bank Reconciliations', freq:'Daily'},
+  {name:'Invoice Packs', freq:'Daily'},
+  {name:'Invoice Processing — SA & AU', freq:'Weekly'},
+  {name:'Debtors Follow-Up / Age Analysis', freq:'Weekly'},
+  {name:'Statements', freq:'Monthly (1st wk)'},
+  {name:'Debit Orders via Netcash', freq:'Monthly (28th)'},
+  {name:'Supplier Recons', freq:'2x Monthly'},
+  {name:'Management Accounts & Reporting', freq:'Monthly'},
+];
+
+function d(daysAgo){ const dt = new Date(); dt.setDate(dt.getDate()-daysAgo); return dt.toISOString().slice(0,10); }
+
+const SEED_TASKS = [
+// ---- FINANCE ----
+{title:'Learn all bookkeeping workflows end-to-end', pillar:'finance', tag:'adhoc', freq:'Once-off', status:'done', added:d(52), notes:''},
+{title:'Build SOP for each bookkeeping workflow ("for dummies" detail level)', pillar:'finance', tag:'adhoc', freq:'Ongoing', status:'in-progress', added:d(52), notes:''},
+{title:'Weekly expense allocation review', pillar:'finance', tag:'adhoc', freq:'Weekly', status:'in-progress', added:d(52), notes:''},
+{title:'Support month-end management accounts prep', pillar:'finance', tag:'mgmt-accounts', freq:'Monthly', status:'not-started', added:d(52), notes:''},
+{title:'Coach bookkeeper — shared learning sessions', pillar:'finance', tag:'adhoc', freq:'Ongoing', status:'not-started', added:d(52), notes:''},
+{title:'QuickBooks automation checklist (bank feeds, rules, matching)', pillar:'finance', tag:'adhoc', freq:'Once-off', status:'done', added:d(48), notes:''},
+{title:'Supplier recons — Stem, Scoop, Xperien, Rectron, First Distribution', pillar:'finance', tag:'supplier-recons', freq:'2x Monthly', status:'done', added:d(44), notes:''},
+{title:'A/R deep dive — matching exceptions, credits on ageing', pillar:'finance', tag:'debtors-followup', freq:'Weekly', status:'in-progress', added:d(43), notes:''},
+{title:'Supplier payments process (AUS) documented', pillar:'finance', tag:'supplier-recons', freq:'Once-off', status:'done', added:d(43), notes:''},
+{title:'Debit Orders processed via Netcash (28th)', pillar:'finance', tag:'netcash-do', freq:'Monthly', status:'done', added:d(38), notes:'Batch authorised on time'},
+{title:'Internal Audit dashboard — draft + QBO report mapping', pillar:'finance', tag:'adhoc', freq:'Ongoing', status:'in-progress', added:d(32), notes:'Broken links need fixing'},
+{title:'Board Dashboard — 9 tabs, strategic depth', pillar:'finance', tag:'adhoc', freq:'Once-off', status:'done', added:d(30), notes:''},
+{title:'VoIP invoicing — 6 customers, portal → QBO → email', pillar:'finance', tag:'invoice-processing', freq:'Monthly', status:'done', added:d(29), notes:''},
+{title:'Domains 90+ days unpaid — list compiled, sent to Tarryn for collections', pillar:'finance', tag:'debtors-followup', freq:'As needed', status:'done', added:d(28), notes:'Monitor collection outcome'},
+{title:'Unpaid leave form process (contact: lorinne@paysol.co.za)', pillar:'finance', tag:'adhoc', freq:'Once-off', status:'not-started', added:d(25), notes:''},
+{title:'Supplier Packs incl. Customer Invoicing', pillar:'finance', tag:'invoice-packs', freq:'Weekly', status:'in-progress', added:d(21), notes:''},
+{title:'Pay Innocent R200', pillar:'finance', tag:'adhoc', freq:'Once-off', status:'done', added:d(18), notes:''},
+{title:'File customer invoices', pillar:'finance', tag:'invoice-packs', freq:'Weekly', status:'done', added:d(18), notes:''},
+{title:'Budget vs Actuals structure (start with fixed expenses)', pillar:'finance', tag:'mgmt-accounts', freq:'Once-off', status:'not-started', added:d(28), notes:''},
+{title:'A/R ageing view per customer (1-30/31-60/61-90/91+)', pillar:'finance', tag:'debtors-followup', freq:'Once-off', status:'not-started', added:d(28), notes:''},
+{title:'June supplier statement reconciliation — all 14 suppliers', pillar:'finance', tag:'supplier-recons', freq:'2x Monthly', status:'done', added:d(1), notes:''},
+{title:'July debit order batch (Netcash #2488674) + QBO capture sheet', pillar:'finance', tag:'netcash-do', freq:'Monthly', status:'done', added:d(1), notes:''},
+{title:'Customer credit application process + June statement run', pillar:'finance', tag:'statements', freq:'Monthly', status:'done', added:d(1), notes:''},
+{title:'Call charge invoicing — 44 customers', pillar:'finance', tag:'invoice-processing', freq:'Weekly', status:'done', added:d(1), notes:''},
+{title:'Stocktake', pillar:'finance', tag:'adhoc', freq:'Monthly', status:'in-progress', added:d(1), notes:''},
+{title:'Debit order loading — training scheduled', pillar:'finance', tag:'netcash-do', freq:'Once-off', status:'not-started', added:d(1), notes:''},
+{title:'Hillcrest Hospice invoice split (Peace Cottage / Hillcrest / Highway)', pillar:'finance', tag:'invoice-processing', freq:'Once-off', status:'in-progress', added:d(1), notes:'Sat with Matt, now sorting allocation'},
+{title:'Credit card statement reconciliation', pillar:'finance', tag:'adhoc', freq:'Monthly', status:'done', added:d(4), notes:''},
+{title:'Invoice & PO amendments', pillar:'finance', tag:'invoice-processing', freq:'As needed', status:'done', added:d(4), notes:''},
+{title:'Labour invoicing (20th of month)', pillar:'finance', tag:'invoice-processing', freq:'Monthly', status:'done', added:d(3), notes:''},
+{title:'Customer payments & statement handling', pillar:'finance', tag:'debtors-followup', freq:'Weekly', status:'done', added:d(2), notes:''},
+{title:'Netcash transactions / payment allocations', pillar:'finance', tag:'netcash-do', freq:'Weekly', status:'done', added:d(3), notes:'3 supplier items still needed clarification'},
+{title:'Australia reporting pack (pipeline, AU workbook, balance sheet, intercompany loan, owner drawings)', pillar:'finance', tag:'mgmt-accounts', freq:'Monthly', status:'not-started', added:d(10), notes:'Corrected — not actually delivered yet'},
+{title:'Account meeting reports (ageing, GST/VAT, tax/PL workbooks)', pillar:'finance', tag:'mgmt-accounts', freq:'Monthly', status:'not-started', added:d(11), notes:'Corrected — not actually delivered yet'},
+{title:'Axxess DSL supplier invoice — confirm SW1 customer mapping', pillar:'finance', tag:'supplier-recons', freq:'As needed', status:'in-progress', added:d(4), notes:''},
+{title:'Debit order outstanding balances (Absto, Momcart, Exquisite Linens, B&E Design, Cargo Haul)', pillar:'finance', tag:'netcash-do', freq:'Monthly', status:'in-progress', added:d(3), notes:'Analysis done, collection decisions pending'},
+
+// ---- TICKETING ----
+{title:'Ownership of Enable ticketing system — access gained', pillar:'ticketing', tag:'', freq:'Once-off', status:'done', added:d(52), notes:''},
+{title:'Learn ticketing workflow: created → checked → invoiced via Carol', pillar:'ticketing', tag:'', freq:'Once-off', status:'done', added:d(52), notes:''},
+{title:'Understand PMX and RMM systems', pillar:'ticketing', tag:'', freq:'Once-off', status:'in-progress', added:d(50), notes:''},
+{title:'Monitor ticket age, escalation status & closure rates', pillar:'ticketing', tag:'', freq:'Ongoing', status:'in-progress', added:d(50), notes:''},
+{title:'Develop team-motivating ticketing reporting system', pillar:'ticketing', tag:'', freq:'Ongoing', status:'in-progress', added:d(48), notes:''},
+{title:'Identify recurring ticket patterns / systemic gaps', pillar:'ticketing', tag:'', freq:'Ongoing', status:'not-started', added:d(48), notes:''},
+{title:'ClickUp & Xero integration — pod of hours, task IDs on invoices', pillar:'ticketing', tag:'', freq:'Weekly', status:'done', added:d(34), notes:''},
+{title:'Google Reviews follow-up process (surveys sent, no responses yet)', pillar:'ticketing', tag:'', freq:'Ongoing', status:'in-progress', added:d(28), notes:'Formal follow-up process not yet built'},
+{title:'3CX transcript review process — cross-check billed/ticketed hours', pillar:'ticketing', tag:'', freq:'Ongoing', status:'in-progress', added:d(9), notes:''},
+{title:'3CX logins — access request', pillar:'ticketing', tag:'', freq:'As needed', status:'blocked', added:d(28), notes:'Chased Carol multiple times'},
+{title:'3CX phone system tutorial with Kevin', pillar:'ticketing', tag:'', freq:'Once-off', status:'done', added:d(18), notes:''},
+{title:'8 June transcripts reviewed — hours confirmed billed/ticketed', pillar:'ticketing', tag:'', freq:'Once-off', status:'done', added:d(21), notes:''},
+{title:'Daily call transcript reviews (M365/Outlook/domains/VoIP quotes)', pillar:'ticketing', tag:'', freq:'Daily', status:'in-progress', added:d(9), notes:'Oversight/FYI monitoring'},
+
+// ---- SYSTEMS ----
+{title:'Observe, listen & learn — workflows, pain points (first 30-60 days)', pillar:'systems', tag:'', freq:'Once-off', status:'in-progress', added:d(52), notes:''},
+{title:'Document inefficiencies & prepare recommendations for leadership', pillar:'systems', tag:'', freq:'Once-off', status:'in-progress', added:d(48), notes:''},
+{title:'Evaluate task/project management platform options', pillar:'systems', tag:'', freq:'Once-off', status:'not-started', added:d(48), notes:''},
+{title:'Lead rollout of chosen platform', pillar:'systems', tag:'', freq:'Once-off', status:'not-started', added:d(48), notes:''},
+{title:'Establish brief biweekly team check-in (~10 min)', pillar:'systems', tag:'', freq:'Ongoing', status:'not-started', added:d(48), notes:''},
+{title:'10 workflows drawn up (bookkeeping, invoicing, recons, onboarding, suspension, ticket lifecycle, hardware, reporting)', pillar:'systems', tag:'', freq:'Once-off', status:'done', added:d(39), notes:''},
+{title:'Missing SOPs: Client Suspensions, Ticket Lifecycle, AR Tracking, Stock Control, Fuel Slips', pillar:'systems', tag:'', freq:'Once-off', status:'not-started', added:d(28), notes:''},
+{title:'Office/stock labelling', pillar:'systems', tag:'', freq:'Once-off', status:'not-started', added:d(25), notes:''},
+{title:'Staff KPI Dashboard — tech targets methodology (6-month avg + 10%)', pillar:'systems', tag:'', freq:'Once-off', status:'done', added:d(10), notes:''},
+{title:'Staff KPI Dashboard — data anomalies resolved (Colin, Matt, Carol)', pillar:'systems', tag:'', freq:'Once-off', status:'done', added:d(9), notes:''},
+{title:'Staff KPI Dashboard — clean whole-number hour figures agreed', pillar:'systems', tag:'', freq:'Once-off', status:'done', added:d(9), notes:''},
+{title:'GitHub repo (StaffDashboard) created, Byron & Sacha invited', pillar:'systems', tag:'', freq:'Once-off', status:'done', added:d(7), notes:''},
+{title:'Document process + key prompts into shareable, repeatable format', pillar:'systems', tag:'', freq:'Once-off', status:'not-started', added:d(9), notes:"Byron's ask — avoid one-person silo"},
+{title:'KPI labels — requested from Byron/Sacha', pillar:'systems', tag:'', freq:'Once-off', status:'blocked', added:d(7), notes:'Requested twice, Sacha preparing'},
+{title:'Salary actuals — placeholder inserted, awaiting real figures', pillar:'systems', tag:'', freq:'Once-off', status:'blocked', added:d(9), notes:''},
+{title:'Sick/annual leave data source — not yet identified', pillar:'systems', tag:'', freq:'Once-off', status:'not-started', added:d(9), notes:''},
+{title:'Env vars + .gitignore set up for sensitive dashboard data', pillar:'systems', tag:'', freq:'Once-off', status:'done', added:d(8), notes:''},
+{title:'ITCorp Workflows Overview document — formal SOPs + automation candidates', pillar:'systems', tag:'', freq:'Once-off', status:'done', added:d(1), notes:''},
+{title:'Draft SOPs jointly with Tarryn (Candice drafts, Tarryn reviews/signs off)', pillar:'systems', tag:'', freq:'Ongoing', status:'in-progress', added:d(0), notes:'From role-swap plan email'},
+{title:'Consolidate finalised SOPs into ITCorp Bookkeeping Handbook', pillar:'systems', tag:'', freq:'Once-off', status:'not-started', added:d(0), notes:'Due end of 3-week assessment period'},
+{title:'"Building data from your pipeline" — AI/reporting project requirements gathering', pillar:'ai', tag:'', freq:'Once-off', status:'in-progress', added:d(4), notes:'Awaiting objectives + pipeline data from Tarryn'},
+
+// ---- MARKETING ----
+{title:'Gather branding assets — logos, colours, fonts', pillar:'marketing', tag:'', freq:'Once-off', status:'in-progress', added:d(48), notes:''},
+{title:'Create brand kit in Canva', pillar:'marketing', tag:'', freq:'Once-off', status:'in-progress', added:d(48), notes:''},
+{title:'Canva Pro Trial activation', pillar:'marketing', tag:'', freq:'Once-off', status:'blocked', added:d(25), notes:'Still not activated'},
+{title:'Client-facing posts — full product/service offerings', pillar:'marketing', tag:'', freq:'Regular', status:'not-started', added:d(48), notes:''},
+{title:'Educational content — phishing/scam email awareness', pillar:'marketing', tag:'', freq:'Once-off', status:'not-started', added:d(48), notes:''},
+{title:'Identify missed sales touchpoints', pillar:'marketing', tag:'', freq:'Ongoing', status:'not-started', added:d(48), notes:''},
+{title:'Video tutorial content strategy — 4 pillars, 10+ ideas mapped', pillar:'marketing', tag:'', freq:'Once-off', status:'in-progress', added:d(25), notes:'Scripts pending leadership sign-off'},
+{title:'Survey Template — requested from Carol', pillar:'marketing', tag:'', freq:'Once-off', status:'blocked', added:d(21), notes:''},
+{title:'Blog article content plan for ITCorp website', pillar:'marketing', tag:'', freq:'Once-off', status:'in-progress', added:d(18), notes:'Drafted, needs sign-off'},
+{title:'Lakelands Championship invite & A5 booking form', pillar:'marketing', tag:'', freq:'Once-off', status:'not-started', added:d(4), notes:"Byron's request — not urgent"},
+
+// ---- AI ----
+{title:'Assess team AI literacy & tool adoption', pillar:'ai', tag:'', freq:'Once-off', status:'not-started', added:d(48), notes:''},
+{title:'Use AI to generate professional invoice descriptions', pillar:'ai', tag:'', freq:'Ongoing', status:'in-progress', added:d(48), notes:''},
+{title:'Design & deliver tailored AI upskilling sessions per team member', pillar:'ai', tag:'', freq:'Once-off', status:'not-started', added:d(48), notes:''},
+{title:'Act as internal AI & emerging tech champion', pillar:'ai', tag:'', freq:'Ongoing', status:'in-progress', added:d(48), notes:''},
+{title:'Bigsby AI research — accessibility features (Deaf/Blind, Visual-to-Text)', pillar:'ai', tag:'', freq:'Once-off', status:'done', added:d(28), notes:'Integration into service offerings not yet mapped'},
+{title:'Team AI Support session framework drafted', pillar:'ai', tag:'', freq:'Once-off', status:'in-progress', added:d(28), notes:''},
+{title:'Power Platform vs Copilot Studio research', pillar:'ai', tag:'', freq:'Once-off', status:'in-progress', added:d(25), notes:''},
+{title:'3CX Call Tracker — keyword flagging for remote/onsite/helpdesk classification', pillar:'ai', tag:'', freq:'Once-off', status:'in-progress', added:d(9), notes:'Feeds Staff KPI dashboard'},
+{title:'Repeat-customer / unresolved-issue detection from transcripts', pillar:'ai', tag:'', freq:'Once-off', status:'in-progress', added:d(9), notes:"Flagged by Byron as key for quality/repeat-work KPI"},
+{title:'Call duration data sourcing from transcripts', pillar:'ai', tag:'', freq:'Once-off', status:'not-started', added:d(9), notes:'Not currently populated'},
+
+// ---- ACQUISITION ----
+{title:'Financial review & due diligence for acquisition', pillar:'acquisition', tag:'', freq:'As needed', status:'not-started', added:d(48), notes:''},
+{title:'Documentation support for acquisition process', pillar:'acquisition', tag:'', freq:'As needed', status:'not-started', added:d(48), notes:''},
+{title:'Apply acquisitions experience to risk evaluation & integration planning', pillar:'acquisition', tag:'', freq:'As needed', status:'not-started', added:d(48), notes:''},
+{title:'Support vendor communication & follow-up', pillar:'acquisition', tag:'', freq:'As needed', status:'not-started', added:d(48), notes:''},
+
+// ---- DIRECTOR ----
+{title:'Attend 7:30 Tuesday team meeting — notes, action items', pillar:'director', tag:'', freq:'Weekly', status:'done', added:d(48), notes:''},
+{title:'Update task tracker, send to Carol/Sacha', pillar:'director', tag:'', freq:'Weekly', status:'in-progress', added:d(48), notes:''},
+{title:'Assist ops director with project builds, quotes, reporting', pillar:'director', tag:'', freq:'Ongoing', status:'in-progress', added:d(48), notes:''},
+{title:'Understand full invoicing calendar (SA & AU)', pillar:'director', tag:'', freq:'Once-off', status:'done', added:d(48), notes:''},
+{title:'General admin & operational support across AU & SA', pillar:'director', tag:'', freq:'Ongoing', status:'in-progress', added:d(48), notes:''},
+{title:'Sent new Staff KPI Dashboard to Byron', pillar:'director', tag:'', freq:'Once-off', status:'not-started', added:d(0), notes:'He confirmed he\'s still waiting on it'},
+{title:'Weekly Friday progress review meeting (Carol, Tarryn, Candice)', pillar:'director', tag:'', freq:'Weekly', status:'in-progress', added:d(0), notes:'From role-swap assessment plan'},
+{title:'ICT Global & HubDoc access request', pillar:'director', tag:'', freq:'As needed', status:'blocked', added:d(1), notes:'Hit a wall a few times without logins'},
+{title:'Sent role-swap check-in reflection to Byron', pillar:'director', tag:'', freq:'Once-off', status:'done', added:d(0), notes:''},
+];
+
+// ---------- STORAGE ----------
+let DATA = null;
+
+async function loadData(){
+  try{
+    const res = await window.storage.get('soc-dashboard-data', false);
+    if(res && res.value){ DATA = JSON.parse(res.value); return; }
+  }catch(e){ /* not found */ }
+  // seed
+  DATA = {
+    tasks: SEED_TASKS.map((t,i)=>({id:'t'+i+'_'+Date.now(), ...t})),
+    competency: COMPETENCY_SEGMENTS.map(s=>({...s, weeks:['pending','pending','pending','pending'], signoff:'Pending'})),
+    currentWeek: 2
+  };
+  await saveData();
+}
+async function saveData(){
+  try{
+    await window.storage.set('soc-dashboard-data', JSON.stringify(DATA), false);
+    document.getElementById('lastSaved').textContent = 'Saved ' + new Date().toLocaleTimeString();
+  }catch(e){ console.error('save failed', e); }
+}
+
+// ---------- HELPERS ----------
+function pillarInfo(key){ return PILLARS.find(p=>p.key===key) || {name:key, color:'#ccc'}; }
+function tagInfo(key){ return FINANCE_TAGS.find(t=>t.key===key) || {name:''}; }
+function statusInfo(key){ return STATUSES.find(s=>s.key===key); }
+function isNew(dateStr){
+  const added = new Date(dateStr); const now = new Date();
+  return (now - added) / (1000*60*60*24) <= 3;
+}
+function fillSelect(sel, items, keyProp, nameProp, includeBlank){
+  sel.innerHTML = '';
+  if(includeBlank){ const o=document.createElement('option'); o.value=''; o.textContent='All'; sel.appendChild(o); }
+  items.forEach(it=>{
+    const o = document.createElement('option');
+    o.value = typeof it === 'string' ? it : it[keyProp];
+    o.textContent = typeof it === 'string' ? it : it[nameProp];
+    sel.appendChild(o);
+  });
+}
+
+// ---------- RENDER: KPI STRIP ----------
+function renderKpiStrip(){
+  const strip = document.getElementById('kpiStrip');
+  strip.innerHTML = '';
+  PILLARS.forEach(p=>{
+    const tasks = DATA.tasks.filter(t=>t.pillar===p.key);
+    const done = tasks.filter(t=>t.status==='done').length;
+    const total = tasks.length;
+    const pct = total ? Math.round(done/total*100) : 0;
+    const card = document.createElement('div');
+    card.className = 'kpi-card';
+    card.innerHTML = `
+      <div class="name"><span class="dot" style="background:${p.color}"></span>${p.name}</div>
+      <div class="counts">${done}/${total} done</div>
+      <div class="kpi-bar"><div class="kpi-bar-fill" style="width:${pct}%;background:${p.color}"></div></div>
+    `;
+    strip.appendChild(card);
+  });
+}
+
+// ---------- RENDER: COMPETENCY ----------
+function renderCompetency(){
+  document.getElementById('compWeekLabel').textContent = DATA.currentWeek;
+  const table = document.getElementById('compTable');
+  let html = '<tr><th>Segment</th><th>Frequency</th><th>Wk1</th><th>Wk2</th><th>Wk3</th><th>Wk4</th><th>Sign-off</th></tr>';
+  DATA.competency.forEach((seg, i)=>{
+    html += `<tr>
+      <td>${seg.name}</td>
+      <td class="freq-tag">${seg.freq}</td>
+      ${seg.weeks.map((w,wi)=>`<td><span class="week-pill ${w}" data-seg="${i}" data-week="${wi}">${pillLabel(w)}</span></td>`).join('')}
+      <td><span class="signoff ${seg.signoff==='Signed off'?'done':''}" data-seg="${i}">${seg.signoff}</span></td>
+    </tr>`;
+  });
+  table.innerHTML = html;
+  table.querySelectorAll('.week-pill').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const seg = +el.dataset.seg, week = +el.dataset.week;
+      const order = ['pending','competent','support','not-yet'];
+      const cur = DATA.competency[seg].weeks[week];
+      const next = order[(order.indexOf(cur)+1) % order.length];
+      DATA.competency[seg].weeks[week] = next;
+      saveData(); renderCompetency();
+    });
+  });
+  table.querySelectorAll('.signoff').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const seg = +el.dataset.seg;
+      DATA.competency[seg].signoff = DATA.competency[seg].signoff === 'Signed off' ? 'Pending' : 'Signed off';
+      saveData(); renderCompetency();
+    });
+  });
+}
+function pillLabel(w){
+  return {pending:'—', competent:'✓', support:'⚠', 'not-yet':'✕'}[w] || '—';
+}
+
+// ---------- FILTER STATE ----------
+let currentView = 'board';
+let filters = {pillar:'', tag:'', freq:''};
+
+function filteredTasks(){
+  return DATA.tasks.filter(t=>
+    (!filters.pillar || t.pillar===filters.pillar) &&
+    (!filters.tag || t.tag===filters.tag) &&
+    (!filters.freq || t.freq===filters.freq)
+  );
+}
+
+// ---------- RENDER: BOARD ----------
+function renderBoard(){
+  const el = document.getElementById('boardView');
+  const tasks = filteredTasks();
+  el.innerHTML = '<div class="board"></div>';
+  const board = el.querySelector('.board');
+  STATUSES.forEach(st=>{
+    const col = document.createElement('div');
+    col.className = 'col';
+    col.dataset.status = st.key;
+    const colTasks = tasks.filter(t=>t.status===st.key);
+    col.innerHTML = `<div class="col-head">${st.name}<span class="count">${colTasks.length}</span></div>`;
+    colTasks.forEach(t=>{
+      const p = pillarInfo(t.pillar);
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.draggable = true;
+      card.dataset.id = t.id;
+      card.style.borderLeftColor = p.color;
+      card.innerHTML = `
+        <div class="title">${escapeHtml(t.title)}</div>
+        <div class="tags">
+          <span class="tag" style="background:${p.color}">${p.name}</span>
+          ${t.tag ? `<span class="tag freq">${tagInfo(t.tag).name}</span>` : ''}
+          ${t.freq ? `<span class="tag freq">${t.freq}</span>` : ''}
+          ${isNew(t.added) ? '<span class="new-badge">NEW</span>' : ''}
+        </div>
+        ${t.notes ? `<div class="notes">${escapeHtml(t.notes)}</div>` : ''}
+      `;
+      card.addEventListener('click', ()=> openModal(t.id));
+      card.addEventListener('dragstart', e=>{ e.dataTransfer.setData('text/plain', t.id); });
+      col.appendChild(card);
+    });
+    col.addEventListener('dragover', e=>{ e.preventDefault(); col.classList.add('drag-over'); });
+    col.addEventListener('dragleave', ()=> col.classList.remove('drag-over'));
+    col.addEventListener('drop', e=>{
+      e.preventDefault(); col.classList.remove('drag-over');
+      const id = e.dataTransfer.getData('text/plain');
+      const task = DATA.tasks.find(t=>t.id===id);
+      if(task){ task.status = st.key; saveData(); renderAll(); }
+    });
+    board.appendChild(col);
+  });
+}
+
+// ---------- RENDER: TABLE ----------
+let sortKey='added', sortDir=-1;
+function renderTable(){
+  const el = document.getElementById('tableView');
+  let tasks = filteredTasks();
+  tasks = tasks.slice().sort((a,b)=>{
+    let av=a[sortKey], bv=b[sortKey];
+    if(av<bv) return -1*sortDir; if(av>bv) return 1*sortDir; return 0;
+  });
+  if(!tasks.length){ el.innerHTML = '<div class="empty">No tasks match these filters.</div>'; return; }
+  let html = `<table class="main"><tr>
+    <th class="sortable" data-k="title">Task</th>
+    <th class="sortable" data-k="pillar">Pillar</th>
+    <th class="sortable" data-k="tag">Finance Tag</th>
+    <th class="sortable" data-k="freq">Frequency</th>
+    <th class="sortable" data-k="status">Status</th>
+    <th class="sortable" data-k="added">Added</th>
+  </tr>`;
+  tasks.forEach(t=>{
+    const p = pillarInfo(t.pillar), s = statusInfo(t.status);
+    html += `<tr data-id="${t.id}" style="cursor:pointer">
+      <td>${escapeHtml(t.title)} ${isNew(t.added)?'<span class="new-badge">NEW</span>':''}</td>
+      <td><span class="tag" style="background:${p.color}">${p.name}</span></td>
+      <td>${t.tag ? tagInfo(t.tag).name : '—'}</td>
+      <td>${t.freq || '—'}</td>
+      <td><span class="status-pill" style="background:${s.color}">${s.name}</span></td>
+      <td>${t.added}</td>
+    </tr>`;
+  });
+  html += '</table>';
+  el.innerHTML = html;
+  el.querySelectorAll('tr[data-id]').forEach(row=>{
+    row.addEventListener('click', ()=> openModal(row.dataset.id));
+  });
+  el.querySelectorAll('th.sortable').forEach(th=>{
+    th.addEventListener('click', ()=>{
+      if(sortKey===th.dataset.k) sortDir *= -1; else { sortKey = th.dataset.k; sortDir = 1; }
+      renderTable();
+    });
+  });
+}
+
+function escapeHtml(s){
+  const d = document.createElement('div'); d.textContent = s||''; return d.innerHTML;
+}
+
+// ---------- MODAL ----------
+let editingId = null;
+function openModal(id){
+  const t = DATA.tasks.find(x=>x.id===id);
+  if(!t) return;
+  editingId = id;
+  document.getElementById('mTitle').value = t.title;
+  document.getElementById('mPillar').value = t.pillar;
+  document.getElementById('mTag').value = t.tag;
+  document.getElementById('mFreq').value = t.freq;
+  document.getElementById('mStatus').value = t.status;
+  document.getElementById('mNotes').value = t.notes || '';
+  document.getElementById('modalBg').classList.add('open');
+}
+function closeModal(){ document.getElementById('modalBg').classList.remove('open'); editingId=null; }
+
+// ---------- INIT UI ----------
+function renderAll(){
+  renderKpiStrip();
+  renderCompetency();
+  if(currentView==='board'){ document.getElementById('boardView').style.display='block'; document.getElementById('tableView').style.display='none'; renderBoard(); }
+  else { document.getElementById('boardView').style.display='none'; document.getElementById('tableView').style.display='block'; renderTable(); }
+}
+
+async function init(){
+  await loadData();
+
+  fillSelect(document.getElementById('filterPillar'), PILLARS, 'key', 'name', true);
+  fillSelect(document.getElementById('filterTag'), FINANCE_TAGS.filter(t=>t.key), 'key', 'name', true);
+  fillSelect(document.getElementById('filterFreq'), FREQUENCIES, null, null, true);
+
+  fillSelect(document.getElementById('qPillar'), PILLARS, 'key', 'name', false);
+  fillSelect(document.getElementById('qTag'), FINANCE_TAGS, 'key', 'name', false);
+  fillSelect(document.getElementById('qFreq'), FREQUENCIES, null, null, false);
+  fillSelect(document.getElementById('bPillar'), PILLARS, 'key', 'name', false);
+  fillSelect(document.getElementById('mPillar'), PILLARS, 'key', 'name', false);
+  fillSelect(document.getElementById('mTag'), FINANCE_TAGS, 'key', 'name', false);
+  fillSelect(document.getElementById('mFreq'), FREQUENCIES, null, null, false);
+
+  document.getElementById('viewKanbanBtn').addEventListener('click', ()=>{
+    currentView='board';
+    document.getElementById('viewKanbanBtn').classList.add('active');
+    document.getElementById('viewTableBtn').classList.remove('active');
+    renderAll();
+  });
+  document.getElementById('viewTableBtn').addEventListener('click', ()=>{
+    currentView='table';
+    document.getElementById('viewTableBtn').classList.add('active');
+    document.getElementById('viewKanbanBtn').classList.remove('active');
+    renderAll();
+  });
+
+  document.getElementById('filterPillar').addEventListener('change', e=>{ filters.pillar=e.target.value; renderAll(); });
+  document.getElementById('filterTag').addEventListener('change', e=>{ filters.tag=e.target.value; renderAll(); });
+  document.getElementById('filterFreq').addEventListener('change', e=>{ filters.freq=e.target.value; renderAll(); });
+
+  document.getElementById('toggleAdd').addEventListener('click', ()=>{
+    document.getElementById('addPanel').classList.toggle('open');
+  });
+  document.querySelectorAll('.tabs button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tabQuick').style.display = btn.dataset.tab==='quick' ? 'block':'none';
+      document.getElementById('tabBulk').style.display = btn.dataset.tab==='bulk' ? 'block':'none';
+    });
+  });
+
+  document.getElementById('addQuickBtn').addEventListener('click', async ()=>{
+    const title = document.getElementById('qTitle').value.trim();
+    if(!title) return;
+    DATA.tasks.push({
+      id:'t_'+Date.now()+Math.random().toString(36).slice(2,7),
+      title,
+      pillar: document.getElementById('qPillar').value,
+      tag: document.getElementById('qTag').value,
+      freq: document.getElementById('qFreq').value,
+      status: document.getElementById('qStatus').value,
+      added: new Date().toISOString().slice(0,10),
+      notes: document.getElementById('qNotes').value.trim()
+    });
+    document.getElementById('qTitle').value=''; document.getElementById('qNotes').value='';
+    await saveData(); renderAll();
+  });
+
+  document.getElementById('addBulkBtn').addEventListener('click', async ()=>{
+    const lines = document.getElementById('bulkText').value.split('\n').map(l=>l.trim()).filter(Boolean);
+    const pillar = document.getElementById('bPillar').value;
+    lines.forEach(line=>{
+      DATA.tasks.push({
+        id:'t_'+Date.now()+Math.random().toString(36).slice(2,7),
+        title: line, pillar, tag:'', freq:'', status:'not-started',
+        added: new Date().toISOString().slice(0,10), notes:''
+      });
+    });
+    document.getElementById('bulkText').value='';
+    await saveData(); renderAll();
+  });
+
+  document.getElementById('closeModalBtn').addEventListener('click', closeModal);
+  document.getElementById('modalBg').addEventListener('click', e=>{ if(e.target.id==='modalBg') closeModal(); });
+  document.getElementById('saveModalBtn').addEventListener('click', async ()=>{
+    const t = DATA.tasks.find(x=>x.id===editingId);
+    if(!t) return;
+    t.title = document.getElementById('mTitle').value.trim();
+    t.pillar = document.getElementById('mPillar').value;
+    t.tag = document.getElementById('mTag').value;
+    t.freq = document.getElementById('mFreq').value;
+    t.status = document.getElementById('mStatus').value;
+    t.notes = document.getElementById('mNotes').value.trim();
+    await saveData(); closeModal(); renderAll();
+  });
+  document.getElementById('deleteTaskBtn').addEventListener('click', async ()=>{
+    DATA.tasks = DATA.tasks.filter(x=>x.id!==editingId);
+    await saveData(); closeModal(); renderAll();
+  });
+
+  renderAll();
+}
+init();
+</script>
+</body>
+</html>
